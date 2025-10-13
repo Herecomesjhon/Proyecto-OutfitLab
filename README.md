@@ -1,50 +1,97 @@
-# Welcome to your Expo app 👋
+## Como conectar el frontend con el backend
+# Pasos rápidos
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+# Instala dependencias
+cd frontend
+npm install
 
-## Get started
+# Crea tu archivo .env 
+En la parte de frontend/app existe un archivo llamado .env.example solo duplica el archivo .env.example y renómbralo a .env
+Edita .env y coloca tu URL de backend:
 
-1. Install dependencies
+# OPCIÓN A: IP local (dispositivo físico en la misma red Wi-Fi)
+EXPO_PUBLIC_API_URL=http://TU_IP_LOCAL:3000
 
-   ```bash
-   npm install
-   ```
+# Arranca el backend
+cd ../backend
+npm install   # si es la primera vez
+npm run dev
+Debes ver: API en http://localhost:3000
 
-2. Start the app
+# Arranca el frontend (Expo)
+cd ../frontend
+npx expo start -c
 
-   ```bash
-   npx expo start
-   ```
+# Abre la app en tu Android con Expo Go (o en emulador).
 
-In the output, you'll find options to open the app in a
+# Confirma en la consola de Expo:
+API_URL = http://TU_IP_LOCAL:3000 (o tu ngrok)
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+# ¿Cómo obtengo mi IP local?
+Windows (PowerShell):
+ipconfig
+Busca “Dirección IPv4”, algo como 192.168.1.10.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+(o ip a). Toma la IP de tu interfaz Wi-Fi.
 
-## Get a fresh project
+# Asegúrate de que PC y teléfono estén en la misma red Wi-Fi.
 
-When you're ready, run:
+# Notas por plataforma
+Android (dispositivo físico con Expo Go): usa http://<IP_DE_TU_PC>:3000.
+Android Emulator (AVD): el host se ve como http://10.0.2.2:3000.
+iOS Simulator: normalmente funciona http://localhost:3000.
 
-```bash
-npm run reset-project
-```
+# Estructura relevante
+frontend/
+  app/
+    login.tsx        # POST /auth/login
+    register.tsx     # POST /auth/register
+    api.ts           # helper para peticiones (usa EXPO_PUBLIC_API_URL)
+  .env.example        # ejemplo a copiar (NO se sube .env)
+  .gitignore          # ignora node_modules, .expo, .env
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+# Endpoints en uso
+POST /auth/register → { email, password, name }
+POST /auth/login → { email, password } → { token }
+GET /health → ping del backend
 
-## Learn more
+## Problemas comunes
+# “Network request failed” (Expo):
+Verifica que el backend esté corriendo en tu PC.
 
-To learn more about developing your project with Expo, look at the following resources:
+# Confirmar que el API_URL mostrado en la consola de Expo coincide con tu .env.
+Asegúrate de que el teléfono y la PC están en la misma red.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+# Revisa firewall de Windows (permitir Node/puerto 3000).
+Si no puedes usar IP local, usa ngrok.
 
-## Join the community
+# Cambio en .env y Expo no lo toma:
+npx expo start -c
 
-Join our community of developers creating universal apps.
+## Con emulador Android: usa http://10.0.2.2:3000 en .env.
+# Errores de compilación por caché:
+Detén Expo.
+Borra caché: npx expo start -c.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+# Convenciones del repo
+No subir: frontend/.env, frontend/node_modules, frontend/.expo/.
+Por eso existe frontend/.gitignore y .env.example (cada quien crea su .env local).
+
+## Resumen express
+cd frontend
+npm install
+cp .env.example .env     # o copiar/renombrar en Windows
+# Edita .env -> EXPO_PUBLIC_API_URL=http://TU_IP_LOCAL:3000
+cd ../backend
+npm run dev
+cd ../frontend
+npx expo start -c
+
+
+Si algo no te funciona, comparte capturas de:
+
+lo que imprime Expo (API_URL = ...)
+
+el error en pantalla/consola
+
+y tu .env (ocultando datos sensibles).
