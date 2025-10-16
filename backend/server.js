@@ -23,9 +23,6 @@ app.get('/health-db', async (req, res) => {
   }
 });
 
-//conexión a la base de datos
-const pool = require('./db');
-
 //Ruta de prueba de la conexión de la base de datos
 app.get('/test-db', async(req, res) => {
     try {
@@ -38,9 +35,6 @@ app.get('/test-db', async(req, res) => {
 // Rutas
 const authRoutes = require('./auth.routes');
 app.use('/auth', authRoutes);
-
-// Ruta protegida para /me 
-const jwt = require('jsonwebtoken'); // <-- SOLO una vez en todo este archivo
 
 function authenticate(req, res, next) {
     const h = req.headers.authorization || '';
