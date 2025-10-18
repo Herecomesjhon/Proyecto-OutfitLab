@@ -1,4 +1,4 @@
-import { post } from "./api";
+import { post } from "../src/api";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";

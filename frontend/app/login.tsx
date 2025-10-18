@@ -1,4 +1,4 @@
-import { post } from "./api";
+import { post } from "../src/api";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
@@ -8,12 +8,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  StyleSheet,
+  StyleSheet, 
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import axios from 'axios';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -21,29 +22,18 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert("Error", "Por favor completa todos los campos");
-      return;
-    }
-
     try {
-      console.log("Intentando login:", { email, password });
-
-      // 👇 usar API_URL del .env y endpoint correcto (sin /api)
-      const data = await post("/auth/login", { email, password });
-
-      // Tu backend devuelve { token }
-      if (data?.token) {
-        Alert.alert("Éxito", "Inicio de sesión exitoso");
-        // TODO: guardar token si lo necesitan y navegar:
-        // await AsyncStorage.setItem("token", data.token);
-        // router.push("/(tabs)");
-      } else {
-        Alert.alert("Error", "Credenciales incorrectas");
-      }
+      const res = await axios.post(
+        'http://192.168.0.100:3000/auth/login',   //poner su IP de su compuu
+        { email, password },
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+      console.log('LOGIN OK:', res.status, res.data);
+      // ...seguir flujo
     } catch (err: any) {
-      console.error("Error de login:", err?.message);
-      Alert.alert("Error", "No se pudo conectar con el servidor");
+      console.error('LOGIN ERROR:', err?.message || err);
+      if (err?.response) console.log('status:', err.response.status, 'data:', err.response.data);
+      alert('No se pudo conectar con el servidor');
     }
   };
 
