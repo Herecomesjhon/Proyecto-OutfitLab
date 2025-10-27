@@ -1,44 +1,138 @@
+//login.tsx
 import { post } from "../src/api";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  StyleSheet, 
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import axios from 'axios';
+import * as AuthSession from "expo-auth-session";
+import * as WebBrowser from "expo-web-browser";
+import * as Google from "expo-auth-session/providers/google";
+import * as Facebook from "expo-auth-session/providers/facebook";
+
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
+  const redirectUri = __DEV__ 
+  ? "https://auth.expo.dev/@pandemuerttoo/outfit-lab"
+  : AuthSession.makeRedirectUri({ scheme: "outfitlab" });
+  console.log("redirectUri ->", redirectUri);
+
+  // --- Google (id_token) ---
+const [gRequest, gResponse, gPromptAsync] = Google.useAuthRequest({
+  clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || "",
+  // androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ?? "",
+  scopes: ["profile", "email"], 
+  redirectUri: redirectUri,
+});
+
+useEffect(() => {
+  if (gResponse?.type === "success" && gResponse.params?.id_token) {
+    handleGoogleWithToken(gResponse.params.id_token);
+  }
+}, [gResponse]);
+
+const onGooglePress = async () => {
+  await gPromptAsync();  // ✅ Sin useProxy
+};
+
+  // --- Facebook (access_token) ---
+  const [fbRequest, fbResponse, fbPromptAsync] = Facebook.useAuthRequest({
+    clientId: process.env.EXPO_PUBLIC_FB_APP_ID || "",
+    scopes: ["profile", "email"], 
+    redirectUri: redirectUri,
+  });
+
+  useEffect(() => {
+    if (fbResponse?.type === "success") {
+      // TS no conoce 'authentication', así que hacemos un cast a any
+      const accessToken = (fbResponse as any)?.authentication?.accessToken;
+      if (accessToken) {
+        handleFacebookWithToken(accessToken);
+      }
+    }
+  }, [fbResponse]);
+
+  const onFacebookPress = async () => {
+    await gPromptAsync();  // ✅ Sin useProxy
+  }
+
+  // ---------------- Email / password ----------------
   const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert("Error", "Por favor completa todos los campos");
+      return;
+    }
     try {
-      const res = await axios.post(
-        'http://192.168.0.100:3000/auth/login',   //poner su IP de su compuu
-        { email, password },
-        { headers: { 'Content-Type': 'application/json' } }
-      );
-      console.log('LOGIN OK:', res.status, res.data);
-      // ...seguir flujo
+      const data = await post("/auth/login", { email, password }); // { token, user }
+      // TODO: guarda token si lo necesitas y navega
+      // await AsyncStorage.setItem('token', data.token);
+      Alert.alert("Éxito", `Bienvenido, ${data.user?.name ?? ""}`);
+      router.replace("./(tabs)");
     } catch (err: any) {
-      console.error('LOGIN ERROR:', err?.message || err);
-      if (err?.response) console.log('status:', err.response.status, 'data:', err.response.data);
-      alert('No se pudo conectar con el servidor');
+      console.error("LOGIN ERROR:", err?.message || err);
+      Alert.alert("Error", err?.message || "No se pudo conectar con el servidor");
+    }
+  };
+
+  // ---------------- Google ----------------
+  const handleGoogle = async () => {
+    try {
+      await gPromptAsync();
+    } catch (e: any) {
+      Alert.alert("Google", e?.message || "No se pudo abrir Google");
+    }
+  };
+
+  const handleGoogleWithToken = async (idToken: string) => {
+    try {
+      const data = await post("/auth/google", { idToken }); // { token, user }
+      Alert.alert("Éxito", `Hola, ${data.user?.name ?? "Google User"}`);
+      router.replace("/");
+    } catch (e: any) {
+      Alert.alert("Google", e?.message || "Error al autenticar con Google");
+    }
+  };
+
+  // ---------------- Facebook ----------------
+  const handleFacebook = async () => {
+    try {
+      await fbPromptAsync();
+    } catch (e: any) {
+      Alert.alert("Facebook", e?.message || "No se pudo abrir Facebook");
+    }
+  };
+
+  const handleFacebookWithToken = async (accessToken: string) => {
+    try {
+      const data = await post("/auth/facebook", { accessToken }); // { token, user }
+      Alert.alert("Éxito", `Hola, ${data.user?.name ?? "Facebook User"}`);
+      router.replace("/");
+    } catch (e: any) {
+      Alert.alert("Facebook", e?.message || "Error al autenticar con Facebook");
     }
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
@@ -46,7 +140,11 @@ export default function LoginScreen() {
           </TouchableOpacity>
 
           <View style={styles.logoContainer}>
-            <Image source={require("../assets/images/icom.png")} style={styles.logo} resizeMode="contain" />
+            <Image
+              source={require("../assets/images/icom.png")}
+              style={styles.logo}
+              resizeMode="contain"
+            />
             <Text style={styles.appTitle}>OutfitLab</Text>
           </View>
 
@@ -80,8 +178,15 @@ export default function LoginScreen() {
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
             />
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
-              <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color="#666" />
+            <TouchableOpacity
+              onPress={() => setShowPassword(!showPassword)}
+              style={styles.eyeIcon}
+            >
+              <Ionicons
+                name={showPassword ? "eye-off-outline" : "eye-outline"}
+                size={20}
+                color="#666"
+              />
             </TouchableOpacity>
           </View>
 
@@ -100,12 +205,20 @@ export default function LoginScreen() {
             <View style={styles.separatorLine} />
           </View>
 
-          <TouchableOpacity style={[styles.socialButton, styles.googleButton]}>
+          <TouchableOpacity
+            style={[styles.socialButton, styles.googleButton]}
+            onPress={handleGoogle}
+            disabled={!gRequest}
+          >
             <Ionicons name="logo-google" size={20} color="#DB4437" />
             <Text style={styles.socialButtonText}>Google</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.socialButton, styles.facebookButton]}>
+          <TouchableOpacity
+            style={[styles.socialButton, styles.facebookButton]}
+            onPress={handleFacebook}
+            disabled={!fbRequest}
+          >
             <Ionicons name="logo-facebook" size={20} color="#4267B2" />
             <Text style={styles.socialButtonText}>Facebook</Text>
           </TouchableOpacity>
@@ -148,7 +261,13 @@ const styles = StyleSheet.create({
   eyeIcon: { padding: 5 },
   forgotPassword: { alignSelf: "flex-end", marginBottom: 30 },
   forgotPasswordText: { color: "#667eea", fontSize: 14 },
-  loginButton: { backgroundColor: "#667eea", paddingVertical: 16, borderRadius: 12, alignItems: "center", marginBottom: 25 },
+  loginButton: {
+    backgroundColor: "#667eea",
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    marginBottom: 25,
+  },
   loginButtonText: { color: "white", fontSize: 16, fontWeight: "600" },
   separator: { flexDirection: "row", alignItems: "center", marginBottom: 25 },
   separatorLine: { flex: 1, height: 1, backgroundColor: "#ddd" },

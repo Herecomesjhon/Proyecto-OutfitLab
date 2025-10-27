@@ -1,30 +1,34 @@
-import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation, useRouter } from 'expo-router';
-import React, { useLayoutEffect, useState } from 'react';
+// app/index.tsx
+import { LinearGradient } from "expo-linear-gradient";
+import { useNavigation, useRouter } from "expo-router";
+import React, { useLayoutEffect, useState } from "react";
 import {
-  Dimensions,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+  Dimensions, Image, ImageSourcePropType, ScrollView,
+  StyleSheet, Text, TouchableOpacity, View, ColorValue
+} from "react-native";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
+
+type GradientColors = [ColorValue, ColorValue, ...ColorValue[]];
+type SlideItem = {
+  id: string;
+  title: string;
+  description: string;
+  color: GradientColors;
+  gif: ImageSourcePropType;
+};
 
 export default function OnboardingScreen() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const navigation = useNavigation();
   const router = useRouter();
 
-  // Configura el título y el ícono del header
   useLayoutEffect(() => {
-    navigation.setOptions({
-      title: '  Bienvenido a OutfitLab',
+    (navigation as any).setOptions?.({
+      title: "  Bienvenido a OutfitLab",
       headerLeft: () => (
         <Image
-          source={require('../assets/images/icom.png')} // ✅ ruta corregida
+          source={require("../assets/images/icom.png")}
           style={{ width: 32, height: 32, marginLeft: 16 }}
           resizeMode="contain"
         />
@@ -32,35 +36,32 @@ export default function OnboardingScreen() {
     });
   }, [navigation]);
 
-  // Datos del carrusel
-  const slides = [
+  const slides: SlideItem[] = [
     {
-      id: '1',
-      title: 'Organiza tu armario',
-      description: 'Digitaliza todas tus prendas y accesorios en un solo lugar. Nunca más olvidarás lo que tienes',
-      color: ['#f8f8f8ff', '#15c67fff'],
-      gif: require('../assets/images/armario.gif'), // recuerda el formato de las rutas
+      id: "1",
+      title: "Organiza tu armario",
+      description:
+        "Digitaliza todas tus prendas y accesorios en un solo lugar. Nunca más olvidarás lo que tienes",
+      color: ["#f8f8f8ff", "#15c67fff"] as GradientColors,
+      gif: require("../assets/images/armario.gif"),
     },
     {
-      id: '2',
-      title: 'Descubre outfits',
-      description: 'Combina tu ropa de formas nuevas e innovadoras',
-      color: ['#f8f8f8ff', '#e4c31eff'],
-      gif: require('../assets/images/adecuado.gif'),
+      id: "2",
+      title: "Descubre outfits",
+      description: "Combina tu ropa de formas nuevas e innovadoras",
+      color: ["#f8f8f8ff", "#e4c31eff"] as GradientColors,
+      gif: require("../assets/images/adecuado.gif"),
     },
     {
-      id: '3',
-      title: 'Ahorra tiempo',
-      description: 'Decide qué ponerte en segundos, no en horas',
-
-      
-      color: ['#f7f7f7ff', '#295adeff'],
-      gif: require('../assets/images/equilibrio-de-tiempo.gif'),
+      id: "3",
+      title: "Ahorra tiempo",
+      description: "Decide qué ponerte en segundos, no en horas",
+      color: ["#f7f7f7ff", "#295adeff"] as GradientColors,
+      gif: require("../assets/images/equilibrio-de-tiempo.gif"),
     },
   ];
 
-  // Componente interno para cada slide
-  const Slide = ({ item }) => (
+  const Slide: React.FC<{ item: SlideItem }> = ({ item }) => (
     <View style={[styles.slide, { width }]}>
       <LinearGradient colors={item.color} style={styles.gradient}>
         <View style={styles.content}>
@@ -93,7 +94,6 @@ export default function OnboardingScreen() {
         ))}
       </ScrollView>
 
-      {/* Indicadores */}
       <View style={styles.indicatorContainer}>
         {slides.map((_, index) => (
           <View
@@ -106,18 +106,17 @@ export default function OnboardingScreen() {
         ))}
       </View>
 
-      {/* Botones */}
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={[styles.button, styles.primaryButton]}
-          onPress={() => router.push('/register')}
+          onPress={() => router.push("/register")}
         >
           <Text style={styles.primaryButtonText}>Crear cuenta</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.button, styles.secondaryButton]}
-          onPress={() => router.push('/login')}
+          onPress={() => router.push("/login")}
         >
           <Text style={styles.secondaryButtonText}>Iniciar sesión</Text>
         </TouchableOpacity>
@@ -126,92 +125,20 @@ export default function OnboardingScreen() {
   );
 }
 
-// Estilos
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  slide: {
-    flex: 1,
-  },
-  gradient: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  content: {
-    alignItems: 'center',
-    paddingHorizontal: 40,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: 'white',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  description: {
-    fontSize: 16,
-    color: 'white',
-    textAlign: 'center',
-    lineHeight: 24,
-  },
-  indicatorContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 30,
-  },
-  indicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#ddd',
-    marginHorizontal: 4,
-  },
-  indicatorActive: {
-    backgroundColor: '#8e8e8eff',
-    width: 20,
-  },
-  buttonContainer: {
-    paddingHorizontal: 30,
-    paddingBottom: 50,
-  },
-  button: {
-    paddingVertical: 15,
-    borderRadius: 25,
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  primaryButton: {
-    backgroundColor: '#40a585ff',
-  },
-  primaryButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  secondaryButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: '#40a585ff',
-  },
-  secondaryButtonText: {
-    color: '#40a585ff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  container: { flex: 1, backgroundColor: "#fff" },
+  slide: { flex: 1 },
+  gradient: { flex: 1, justifyContent: "center", alignItems: "center" },
+  content: { alignItems: "center", paddingHorizontal: 40 },
+  title: { fontSize: 28, fontWeight: "bold", color: "white", textAlign: "center", marginBottom: 20 },
+  description: { fontSize: 16, color: "white", textAlign: "center", lineHeight: 24 },
+  indicatorContainer: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginBottom: 30 },
+  indicator: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#ddd", marginHorizontal: 4 },
+  indicatorActive: { backgroundColor: "#8e8e8eff", width: 20 },
+  buttonContainer: { paddingHorizontal: 30, paddingBottom: 50 },
+  button: { paddingVertical: 15, borderRadius: 25, alignItems: "center", marginBottom: 15 },
+  primaryButton: { backgroundColor: "#40a585ff" },
+  primaryButtonText: { color: "white", fontSize: 16, fontWeight: "600" },
+  secondaryButton: { backgroundColor: "transparent", borderWidth: 1, borderColor: "#40a585ff" },
+  secondaryButtonText: { color: "#40a585ff", fontSize: 16, fontWeight: "600" },
 });
-
-// Opciones estáticas del screen (cabecera)
-export const options = {
-  title: 'Bienvenido',
-  headerLeft: () => (
-    <Image
-      source={require('../assets/images/outfitlab.png')} // ✅ ruta corregida
-      style={{ width: 32, height: 32, marginLeft: 16 }}
-      resizeMode="contain"
-    />
-  ),
-};

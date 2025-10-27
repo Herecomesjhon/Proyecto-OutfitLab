@@ -1,7 +1,8 @@
+//register.tsx
 import { post } from "../src/api";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -13,6 +14,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import * as AuthSession from "expo-auth-session";
+import * as WebBrowser from "expo-web-browser";
+import * as Google from "expo-auth-session/providers/google";
+import * as Facebook from "expo-auth-session/providers/facebook";
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function RegisterScreen() {
   const [formData, setFormData] = useState({
@@ -28,8 +35,80 @@ export default function RegisterScreen() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const redirectUri = __DEV__ 
+    ? "https://auth.expo.dev/@pandemuerttoo/outfit-lab"
+    : AuthSession.makeRedirectUri({ scheme: "outfitlab" });
+    console.log("redirectUri ->", redirectUri);
+
+  // ---------------- Google (id_token) ----------------
+  const [gRequest, gResponse, gPromptAsync] = Google.useAuthRequest({
+    clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || "",
+    scopes: ["profile", "email"], 
+    redirectUri: redirectUri,
+  });
+
+  const handleGoogleWithToken = async (id_token: string) => {
+    try {
+      const data = await post("/auth/google", { id_token });
+      if (data?.token || data?.success) {
+        Alert.alert("¡Listo!", "Registro/ingreso con Google exitoso");
+        // si quieres llevarlo directo a tabs:
+        // router.replace("/(tabs)");
+        router.replace("/login");
+      } else {
+        Alert.alert("Error", data?.error || "No se pudo registrar con Google");
+      }
+    } catch (e: any) {
+      Alert.alert("Error", e?.message || "Fallo Google");
+    }
+  };
+
+  useEffect(() => {
+    if (gResponse?.type === "success" && (gResponse as any)?.params?.id_token) {
+      handleGoogleWithToken((gResponse as any).params.id_token);
+    }
+  }, [gResponse]);
+
+  const onGooglePress = async () => {
+    await gPromptAsync();  // ✅ Sin useProxy
+  };
+
+  // ---------------- Facebook (access_token) ----------------
+  const [fbRequest, fbResponse, fbPromptAsync] = Facebook.useAuthRequest({
+    clientId: process.env.EXPO_PUBLIC_FB_APP_ID || "",
+    scopes: ["profile", "email"], 
+    redirectUri: redirectUri,
+  });
+
+  const handleFacebookWithToken = async (access_token: string) => {
+    try {
+      const data = await post("/auth/facebook", { access_token });
+      if (data?.token || data?.success) {
+        Alert.alert("¡Listo!", "Registro/ingreso con Facebook exitoso");
+        // router.replace("/(tabs)");
+        router.replace("/login");
+      } else {
+        Alert.alert("Error", data?.error || "No se pudo registrar con Facebook");
+      }
+    } catch (e: any) {
+      Alert.alert("Error", e?.message || "Fallo Facebook");
+    }
+  };
+
+  useEffect(() => {
+    if (fbResponse?.type === "success") {
+      // 👇 Expo no tipa 'authentication' correctamente, usamos cast
+      const accessToken = (fbResponse as any)?.authentication?.accessToken;
+      if (accessToken) handleFacebookWithToken(accessToken);
+    }
+  }, [fbResponse]);
+
+  const onFacebookPress = async () => {
+    await gPromptAsync();  // ✅ Sin useProxy
+  };
+
+  // ---------------- Email / Password ----------------
   const handleRegister = async () => {
-    // Validaciones básicas
     if (!formData.nombre || !formData.email || !formData.password || !formData.confirmPassword) {
       Alert.alert("Error", "Por favor completa todos los campos");
       return;
@@ -44,9 +123,6 @@ export default function RegisterScreen() {
     }
 
     try {
-      console.log("Intentando registro:", formData);
-
-      // 👇 usar API_URL del .env y endpoint correcto (sin /api) y con 'name'
       const data = await post("/auth/register", {
         email: formData.email,
         password: formData.password,
@@ -60,13 +136,15 @@ export default function RegisterScreen() {
         Alert.alert("Error", data?.error || "Error al crear la cuenta");
       }
     } catch (err: any) {
-      console.error("Error de registro:", err?.message);
       Alert.alert("Error", "No se pudo conectar con el servidor");
     }
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
@@ -130,8 +208,15 @@ export default function RegisterScreen() {
               onChangeText={(t) => handleChange("confirmPassword", t)}
               secureTextEntry={!showConfirmPassword}
             />
-            <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeIcon}>
-              <Ionicons name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} size={20} color="#666" />
+            <TouchableOpacity
+              onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+              style={styles.eyeIcon}
+            >
+              <Ionicons
+                name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
+                size={20}
+                color="#666"
+              />
             </TouchableOpacity>
           </View>
 
@@ -153,12 +238,20 @@ export default function RegisterScreen() {
             <View style={styles.separatorLine} />
           </View>
 
-          <TouchableOpacity style={[styles.socialButton, styles.googleButton]}>
+          <TouchableOpacity
+            style={[styles.socialButton, styles.googleButton]}
+            disabled={!gRequest}
+            onPress={() => gPromptAsync()}
+          >
             <Ionicons name="logo-google" size={20} color="#DB4437" />
             <Text style={styles.socialButtonText}>Google</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.socialButton, styles.facebookButton]}>
+          <TouchableOpacity
+            style={[styles.socialButton, styles.facebookButton]}
+            disabled={!fbRequest}
+            onPress={() => fbPromptAsync()}
+          >
             <Ionicons name="logo-facebook" size={20} color="#4267B2" />
             <Text style={styles.socialButtonText}>Facebook</Text>
           </TouchableOpacity>
@@ -199,7 +292,13 @@ const styles = StyleSheet.create({
   termsContainer: { marginBottom: 25 },
   termsText: { fontSize: 12, color: "#666", textAlign: "center", lineHeight: 16 },
   termsLink: { color: "#667eea", fontWeight: "500" },
-  registerButton: { backgroundColor: "#667eea", paddingVertical: 16, borderRadius: 12, alignItems: "center", marginBottom: 25 },
+  registerButton: {
+    backgroundColor: "#667eea",
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    marginBottom: 25,
+  },
   registerButtonText: { color: "white", fontSize: 16, fontWeight: "600" },
   separator: { flexDirection: "row", alignItems: "center", marginBottom: 25 },
   separatorLine: { flex: 1, height: 1, backgroundColor: "#ddd" },
