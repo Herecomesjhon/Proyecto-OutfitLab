@@ -54,5 +54,6 @@ app.get('/me', authenticate, (req, res) => {
 });
 
 // inicia el servidor
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`API en http://localhost:${PORT}`));
+app.listen(process.env.PORT || 3000, '0.0.0.0', () =>
+  console.log(`API en http://localhost:${process.env.PORT||3000}`)
+);
