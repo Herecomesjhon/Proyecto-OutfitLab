@@ -1,2 +1,4 @@
 backend/.env
 .env
+
+/generated/prisma

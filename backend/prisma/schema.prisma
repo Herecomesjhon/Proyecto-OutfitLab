@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Item {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  brand       String?
+  color       String?
+  size        String?
+  season      String?
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  categoryId  String?
+  images      Image[]
+  tags        ItemTag[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Category {
+  id    String @id @default(cuid())
+  name  String @unique
+  items Item[]
+}
+
+model Image {
+  id        String   @id @default(cuid())
+  url       String
+  mime      String?
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId    String
+  createdAt DateTime @default(now())
+}
+
+model Tag {
+  id    String    @id @default(cuid())
+  name  String    @unique
+  items ItemTag[]
+}
+
+model ItemTag {
+  item   Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId String
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  tagId  String
+
+  @@id([itemId, tagId])
+}
+
+model Usuario {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  password      String?
+  name          String?
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  authProviders AuthProvider[]
+
+  @@map("usuario")
+}
+
+model AuthProvider {
+  id         String  @id @default(cuid())
+  provider   String
+  providerId String  @map("provider_id")
+  user       Usuario @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String  @map("user_id")
+
+  @@unique([provider, providerId])
+  @@index([userId])
+  @@map("auth_providers")
+}
