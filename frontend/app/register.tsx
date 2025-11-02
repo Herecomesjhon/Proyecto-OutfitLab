@@ -8,7 +8,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
@@ -18,6 +17,7 @@ import * as AuthSession from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
 import * as Google from "expo-auth-session/providers/google";
 import * as Facebook from "expo-auth-session/providers/facebook";
+import formStyles from '../src/styles/forms';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -104,7 +104,7 @@ export default function RegisterScreen() {
   }, [fbResponse]);
 
   const onFacebookPress = async () => {
-    await gPromptAsync();  // ✅ Sin useProxy
+    await gPromptAsync();  //  Sin useProxy
   };
 
   // ---------------- Email / Password ----------------
@@ -142,24 +142,24 @@ export default function RegisterScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={{ flex: 1, backgroundColor: '#fff' }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 30, paddingTop: 60, paddingBottom: 40 }}>
+        <View style={{ marginBottom: 40 }}>
+          <TouchableOpacity style={{ alignSelf: "flex-start", marginBottom: 20 }} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color="#333" />
           </TouchableOpacity>
-          <Text style={styles.title}>Crear cuenta</Text>
-          <Text style={styles.subtitle}>Regístrate para comenzar</Text>
+          <Text style={{ fontSize: 28, fontWeight: "bold", color: "#333", marginBottom: 10 }}>Crear cuenta</Text>
+          <Text style={{ fontSize: 16, color: "#666" }}>Regístrate para comenzar</Text>
         </View>
 
-        <View style={styles.form}>
+        <View style={{ marginBottom: 30 }}>
           {/* Nombre */}
-          <View style={styles.inputContainer}>
-            <Ionicons name="person-outline" size={20} color="#666" style={styles.inputIcon} />
+          <View style={formStyles.inputContainer}>
+            <Ionicons name="person-outline" size={20} color="#666" style={formStyles.inputIcon} />
             <TextInput
-              style={styles.input}
+              style={formStyles.input}
               placeholder="Nombre completo"
               placeholderTextColor="#999"
               value={formData.nombre}
@@ -168,10 +168,10 @@ export default function RegisterScreen() {
           </View>
 
           {/* Email */}
-          <View style={styles.inputContainer}>
-            <Ionicons name="mail-outline" size={20} color="#666" style={styles.inputIcon} />
+          <View style={formStyles.inputContainer}>
+            <Ionicons name="mail-outline" size={20} color="#666" style={formStyles.inputIcon} />
             <TextInput
-              style={styles.input}
+              style={formStyles.input}
               placeholder="Correo electrónico"
               placeholderTextColor="#999"
               value={formData.email}
@@ -182,26 +182,26 @@ export default function RegisterScreen() {
           </View>
 
           {/* Password */}
-          <View style={styles.inputContainer}>
-            <Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.inputIcon} />
+          <View style={formStyles.inputContainer}>
+            <Ionicons name="lock-closed-outline" size={20} color="#666" style={formStyles.inputIcon} />
             <TextInput
-              style={styles.input}
+              style={formStyles.input}
               placeholder="Contraseña"
               placeholderTextColor="#999"
               value={formData.password}
               onChangeText={(t) => handleChange("password", t)}
               secureTextEntry={!showPassword}
             />
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={formStyles.eyeIcon}>
               <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color="#666" />
             </TouchableOpacity>
           </View>
 
           {/* Confirm Password */}
-          <View style={styles.inputContainer}>
-            <Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.inputIcon} />
+          <View style={formStyles.inputContainer}>
+            <Ionicons name="lock-closed-outline" size={20} color="#666" style={formStyles.inputIcon} />
             <TextInput
-              style={styles.input}
+              style={formStyles.input}
               placeholder="Confirmar contraseña"
               placeholderTextColor="#999"
               value={formData.confirmPassword}
@@ -210,7 +210,7 @@ export default function RegisterScreen() {
             />
             <TouchableOpacity
               onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-              style={styles.eyeIcon}
+              style={formStyles.eyeIcon}
             >
               <Ionicons
                 name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
@@ -220,47 +220,47 @@ export default function RegisterScreen() {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.termsContainer}>
-            <Text style={styles.termsText}>
-              Al registrarte, aceptas nuestros <Text style={styles.termsLink}>Términos de servicio</Text> y{" "}
-              <Text style={styles.termsLink}>Política de privacidad</Text>
+          <View style={{ marginBottom: 25 }}>
+            <Text style={{ fontSize: 12, color: "#666", textAlign: "center", lineHeight: 16 }}>
+              Al registrarte, aceptas nuestros <Text style={{ color: "#667eea", fontWeight: "500" }}>Términos de servicio</Text> y{' '}
+              <Text style={{ color: "#667eea", fontWeight: "500" }}>Política de privacidad</Text>
             </Text>
           </View>
 
-          <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
-            <Text style={styles.registerButtonText}>Crear cuenta</Text>
+          <TouchableOpacity style={formStyles.button} onPress={handleRegister}>
+            <Text style={formStyles.buttonText}>Crear cuenta</Text>
           </TouchableOpacity>
 
           {/* Social */}
-          <View style={styles.separator}>
-            <View style={styles.separatorLine} />
-            <Text style={styles.separatorText}>o regístrate con</Text>
-            <View style={styles.separatorLine} />
+          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 25 }}>
+            <View style={{ flex: 1, height: 1, backgroundColor: "#ddd" }} />
+            <Text style={{ marginHorizontal: 15, color: "#666", fontSize: 14 }}>o regístrate con</Text>
+            <View style={{ flex: 1, height: 1, backgroundColor: "#ddd" }} />
           </View>
 
           <TouchableOpacity
-            style={[styles.socialButton, styles.googleButton]}
+            style={[formStyles.socialButton, formStyles.googleButton]}
             disabled={!gRequest}
             onPress={() => gPromptAsync()}
           >
             <Ionicons name="logo-google" size={20} color="#DB4437" />
-            <Text style={styles.socialButtonText}>Google</Text>
+            <Text style={formStyles.socialButtonText}>Google</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.socialButton, styles.facebookButton]}
+            style={[formStyles.socialButton, formStyles.facebookButton]}
             disabled={!fbRequest}
             onPress={() => fbPromptAsync()}
           >
             <Ionicons name="logo-facebook" size={20} color="#4267B2" />
-            <Text style={styles.socialButtonText}>Facebook</Text>
+            <Text style={formStyles.socialButtonText}>Facebook</Text>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>¿Ya tienes una cuenta? </Text>
-          <TouchableOpacity onPress={() => router.push("/login")}>
-            <Text style={styles.footerLink}>Inicia sesión</Text>
+        <View style={{ flexDirection: "row", justifyContent: "center", marginTop: "auto" }}>
+          <Text style={{ color: "#666", fontSize: 14 }}>¿Ya tienes una cuenta? </Text>
+          <TouchableOpacity onPress={() => router.push("/login")}> 
+            <Text style={{ color: "#667eea", fontSize: 14, fontWeight: "600" }}>Inicia sesión</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -268,55 +268,4 @@ export default function RegisterScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-  scrollContainer: { flexGrow: 1, paddingHorizontal: 30, paddingTop: 60, paddingBottom: 40 },
-  header: { marginBottom: 40 },
-  backButton: { alignSelf: "flex-start", marginBottom: 20 },
-  title: { fontSize: 28, fontWeight: "bold", color: "#333", marginBottom: 10 },
-  subtitle: { fontSize: 16, color: "#666" },
-  form: { marginBottom: 30 },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 12,
-    marginBottom: 20,
-    paddingHorizontal: 15,
-    backgroundColor: "#f9f9f9",
-  },
-  inputIcon: { marginRight: 10 },
-  input: { flex: 1, paddingVertical: 15, fontSize: 16, color: "#333" },
-  eyeIcon: { padding: 5 },
-  termsContainer: { marginBottom: 25 },
-  termsText: { fontSize: 12, color: "#666", textAlign: "center", lineHeight: 16 },
-  termsLink: { color: "#667eea", fontWeight: "500" },
-  registerButton: {
-    backgroundColor: "#667eea",
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: "center",
-    marginBottom: 25,
-  },
-  registerButtonText: { color: "white", fontSize: 16, fontWeight: "600" },
-  separator: { flexDirection: "row", alignItems: "center", marginBottom: 25 },
-  separatorLine: { flex: 1, height: 1, backgroundColor: "#ddd" },
-  separatorText: { marginHorizontal: 15, color: "#666", fontSize: 14 },
-  socialButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    marginBottom: 12,
-  },
-  googleButton: { backgroundColor: "#F5E5E5" },
-  facebookButton: { backgroundColor: "#E6ECF7" },
-  socialButtonText: { marginLeft: 10, fontSize: 16, fontWeight: "500", color: "#333" },
-  footer: { flexDirection: "row", justifyContent: "center", marginTop: "auto" },
-  footerText: { color: "#666", fontSize: 14 },
-  footerLink: { color: "#667eea", fontSize: 14, fontWeight: "600" },
-});
+
