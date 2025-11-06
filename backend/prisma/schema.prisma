@@ -61,6 +61,7 @@ model Usuario {
   createdAt     DateTime       @default(now()) @map("created_at")
   updatedAt     DateTime       @updatedAt @map("updated_at")
   authProviders AuthProvider[]
+  prendas       Prenda[]
 
   @@map("usuario")
 }
@@ -75,4 +76,18 @@ model AuthProvider {
   @@unique([provider, providerId])
   @@index([userId])
   @@map("auth_providers")
+}
+
+model Prenda {
+  id        Int      @id @default(autoincrement())
+  user      Usuario  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String   @map("user_id")
+  imageUrl  String   @map("image_url")
+  type      String?
+  color     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId], map: "idx_clothes_user")
+  @@map("clothes")
 }

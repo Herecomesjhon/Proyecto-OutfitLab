@@ -1,4 +1,11 @@
-backend/.env
-.env
+# Imágenes subidas por el backend
+/backend/uploads/
 
-/generated/prisma
+# Artefactos comunes
+/node_modules/
+/.env
+/.expo
+.expo/*
+/frontend/.expo/
+/backend/node_modules/
+/frontend/node_modules/

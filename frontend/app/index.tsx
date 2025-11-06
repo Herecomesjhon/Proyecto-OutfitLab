@@ -1,15 +1,26 @@
-// app/index.tsx
+// frontend/app/index.tsx
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation, useRouter } from "expo-router";
-import React, { useLayoutEffect, useState } from "react";
+import React, { useLayoutEffect, useState, useEffect } from "react";
 import {
-  Dimensions, Image, ImageSourcePropType, ScrollView,
-  StyleSheet, Text, TouchableOpacity, View, ColorValue
+  Dimensions,
+  Image,
+  ImageSourcePropType,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  ColorValue,
+  ActivityIndicator,
 } from "react-native";
+import { useAuth } from "../src/contexts/auth";
+
 
 const { width } = Dimensions.get("window");
 
 type GradientColors = [ColorValue, ColorValue, ...ColorValue[]];
+
 type SlideItem = {
   id: string;
   title: string;
@@ -22,6 +33,7 @@ export default function OnboardingScreen() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const navigation = useNavigation();
   const router = useRouter();
+  const { user, isLoading } = useAuth();
 
   useLayoutEffect(() => {
     (navigation as any).setOptions?.({
@@ -35,6 +47,31 @@ export default function OnboardingScreen() {
       ),
     });
   }, [navigation]);
+
+  // ✅ Si ya está logueado, redirigir automáticamente
+  useEffect(() => {
+    console.log('👤 Usuario en index:', user);
+    console.log('🔐 Auth loading:', isLoading);
+    
+    if (!isLoading) {
+      if (user) {
+        console.log("✅ Usuario ya logueado, redirigiendo a armario...");
+        router.replace("/(tabs)/armario");
+      } else {
+        console.log("⚠️  No hay usuario logueado");
+      }
+    }
+  }, [isLoading, user]);
+
+  // Mostrar loading mientras verifica auth
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#40a585ff" />
+        <Text style={styles.loadingText}>Cargando...</Text>
+      </View>
+    );
+  }
 
   const slides: SlideItem[] = [
     {
@@ -126,19 +163,89 @@ export default function OnboardingScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-  slide: { flex: 1 },
-  gradient: { flex: 1, justifyContent: "center", alignItems: "center" },
-  content: { alignItems: "center", paddingHorizontal: 40 },
-  title: { fontSize: 28, fontWeight: "bold", color: "white", textAlign: "center", marginBottom: 20 },
-  description: { fontSize: 16, color: "white", textAlign: "center", lineHeight: 24 },
-  indicatorContainer: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginBottom: 30 },
-  indicator: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#ddd", marginHorizontal: 4 },
-  indicatorActive: { backgroundColor: "#8e8e8eff", width: 20 },
-  buttonContainer: { paddingHorizontal: 30, paddingBottom: 50 },
-  button: { paddingVertical: 15, borderRadius: 25, alignItems: "center", marginBottom: 15 },
-  primaryButton: { backgroundColor: "#40a585ff" },
-  primaryButtonText: { color: "white", fontSize: 16, fontWeight: "600" },
-  secondaryButton: { backgroundColor: "transparent", borderWidth: 1, borderColor: "#40a585ff" },
-  secondaryButtonText: { color: "#40a585ff", fontSize: 16, fontWeight: "600" },
+  container: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: "#666",
+  },
+  slide: {
+    flex: 1,
+  },
+  gradient: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  content: {
+    alignItems: "center",
+    paddingHorizontal: 40,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "white",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  description: {
+    fontSize: 16,
+    color: "white",
+    textAlign: "center",
+    lineHeight: 24,
+  },
+  indicatorContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 30,
+  },
+  indicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#ddd",
+    marginHorizontal: 4,
+  },
+  indicatorActive: {
+    backgroundColor: "#8e8e8eff",
+    width: 20,
+  },
+  buttonContainer: {
+    paddingHorizontal: 30,
+    paddingBottom: 50,
+  },
+  button: {
+    paddingVertical: 15,
+    borderRadius: 25,
+    alignItems: "center",
+    marginBottom: 15,
+  },
+  primaryButton: {
+    backgroundColor: "#40a585ff",
+  },
+  primaryButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  secondaryButton: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: "#40a585ff",
+  },
+  secondaryButtonText: {
+    color: "#40a585ff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
 });

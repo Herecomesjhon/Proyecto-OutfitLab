@@ -1,4 +1,4 @@
-// module.exports = r;
+// backend/auth.routes.js
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');

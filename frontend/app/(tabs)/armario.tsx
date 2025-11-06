@@ -1,26 +1,27 @@
+//frontend/app/(tabs)/armario.tsx
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, Alert, FlatList } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useState, useEffect } from "react";
+import * as ImagePicker from "expo-image-picker";
 
-interface ClothingItem {
+// Ajusta estas rutas según tu estructura real:
+import { API_URL } from "../../src/api";            // desde app/(tabs) → ../../src/api
+import { useAuth } from "../../src/contexts/auth";         // si tu contexto está en app/contexts/auth.tsx
+
+type ClothingItem = {
   id: number;
-  imageUrl: string;
+  imageUrl: string;   // el backend devolverá URL completa http://IP:3000/uploads/xxx.jpg
   type?: string;
   color?: string;
-}
-import { useState, useEffect } from "react";
-import * as ImagePicker from 'expo-image-picker';
-import { useAuth } from '../contexts/auth';
-import CategorizationModal from '../components/CategorizationModal';
+};
 
-export default function ClosetScreen() {
+export default function ArmarioScreen() {
   const [activeTab, setActiveTab] = useState("todas");
   const [clothes, setClothes] = useState<ClothingItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<ClothingItem | null>(null);
-  const { user } = useAuth(); // Hook para obtener usuario autenticado
+  const { user } = useAuth(); // Debe tener user.id
 
-  // Categorías de ropa
   const categories = [
     { id: "todas", name: "Todas", icon: "grid-outline" },
     { id: "camisetas", name: "Camisetas", icon: "shirt-outline" },
@@ -29,18 +30,24 @@ export default function ClosetScreen() {
     { id: "accesorios", name: "Accesorios", icon: "watch-outline" },
   ];
 
-  // Cargar prendas del usuario
+  // Pon esto ARRIBA del componente:
+  const TEST_USER_ID = 'cmhhzpave0000bguh98qm8z4l'; // ← el que ya probaste
+
+  function getSafeUserId(user: any) {
+    return user?.id ?? TEST_USER_ID; // mientras arreglamos el Auth
+  }
+
   const loadUserClothes = async () => {
-    if (!user) return;
-    
+    const uid = getSafeUserId(user);
+    if (!uid) return;
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:3000/api/clothes/user/${user.id}`);
-      const data = await response.json();
-      setClothes(data);
-    } catch (error) {
-      console.error('Error cargando prendas:', error);
-      Alert.alert('Error', 'No se pudieron cargar las prendas');
+      const r = await fetch(`${API_URL}/api/clothes/user/${uid}`);
+      const data = await r.json();
+      setClothes(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error(e);
+      Alert.alert("Error", "No se pudieron cargar las prendas");
     } finally {
       setLoading(false);
     }
@@ -48,171 +55,126 @@ export default function ClosetScreen() {
 
   useEffect(() => {
     loadUserClothes();
-  }, [user]);
+  }, [user?.id]);
 
-  // Subir imagen desde cámara
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    
-    if (status !== 'granted') {
-      Alert.alert('Permiso denegado', 'Necesitas permitir el acceso a la cámara');
+    if (status !== "granted") {
+      Alert.alert("Permiso denegado", "Necesitas permitir el acceso a la cámara");
       return;
     }
-
     const result = await ImagePicker.launchCameraAsync({
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
     });
-
-    if (!result.canceled) {
-      await uploadImage(result.assets[0].uri);
-    }
+    if (!result.canceled) await uploadImage(result.assets[0].uri);
   };
 
-  // Seleccionar imagen de galería
   const pickFromGallery = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    
-    if (status !== 'granted') {
-      Alert.alert('Permiso denegado', 'Necesitas permitir el acceso a la galería');
+    if (status !== "granted") {
+      Alert.alert("Permiso denegado", "Necesitas permitir el acceso a la galería");
       return;
     }
-
     const result = await ImagePicker.launchImageLibraryAsync({
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
     });
-
-    if (!result.canceled) {
-      await uploadImage(result.assets[0].uri);
-    }
+    if (!result.canceled) await uploadImage(result.assets[0].uri);
   };
 
-  // Subir imagen al servidor
   const uploadImage = async (uri: string) => {
-    if (!user) return;
+  console.log('AUTH user:', user);
+  const uid = getSafeUserId(user);
+  //const TEST_USER_ID = 'cmhhzpave0000bguh98qm8z4l';
+  //const safeUserId = user?.id ?? TEST_USER_ID;
 
-    setUploading(true);
-    
-    const formData = new FormData();
-    formData.append('image', {
+  if (!uid) return;
+  setUploading(true);
+  try {
+    const form = new FormData();
+    form.append('image', {
       uri,
       type: 'image/jpeg',
       name: `clothing_${Date.now()}.jpg`,
     } as any);
-    formData.append('userId', user.id);
+    form.append('userId', String(uid));
 
-    try {
-      const response = await fetch('http://localhost:3000/api/clothes/upload', {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+    console.log('POST →', `${API_URL}/api/clothes/upload`, 'uid:', uid);
+    const resp = await fetch(`${API_URL}/api/clothes/upload`, { method: 'POST', body: form });
+    const created = await resp.json();
+    console.log('CREATED:', created);
 
-      if (response.ok) {
-        Alert.alert('Éxito', 'Prenda subida correctamente');
-        loadUserClothes(); // Recargar la lista
-      } else {
-        throw new Error('Error en la subida');
-      }
-    } catch (error) {
-      console.error('Error subiendo imagen:', error);
-      Alert.alert('Error', 'No se pudo subir la imagen');
-    } finally {
-      setUploading(false);
-    }
-  };
+    if (!resp.ok) throw new Error(created?.error || 'Upload failed');
 
-  // Mostrar opciones de subida
+    // 👇 Optimistic update: lo mostramos al instante
+    setClothes(prev => [created, ...prev]);
+    
+
+    Alert.alert('Éxito', 'Prenda subida correctamente');
+    loadUserClothes();
+  } catch (e) {
+    console.error('upload error:', e);
+    Alert.alert('Error', 'No se pudo subir la imagen');
+  } finally {
+    setUploading(false);
+  }
+};
+
+
   const showUploadOptions = () => {
-    Alert.alert(
-      'Agregar prenda',
-      'Selecciona una opción',
-      [
-        {
-          text: 'Tomar foto',
-          onPress: takePhoto,
-        },
-        {
-          text: 'Elegir de galería',
-          onPress: pickFromGallery,
-        },
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
-      ]
-    );
+    Alert.alert("Agregar prenda", "Selecciona una opción", [
+      { text: "Tomar foto", onPress: takePhoto },
+      { text: "Elegir de galería", onPress: pickFromGallery },
+      { text: "Cancelar", style: "cancel" },
+    ]);
   };
 
-  // Renderizar grid de prendas con lazy loading
   const renderClothesGrid = () => {
     if (loading) {
       return (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#667eea" />
+          <ActivityIndicator size="large" />
           <Text style={styles.loadingText}>Cargando prendas...</Text>
         </View>
       );
     }
-
     if (clothes.length === 0) {
       return (
         <View style={styles.emptyState}>
           <Ionicons name="shirt-outline" size={64} color="#ccc" />
           <Text style={styles.emptyStateTitle}>Tu armario está vacío</Text>
-          <Text style={styles.emptyStateText}>
-            Comienza a agregar tus prendas favoritas
-          </Text>
-          <TouchableOpacity 
-            style={styles.addButton} 
-            onPress={showUploadOptions}
-            disabled={uploading}
-          >
-            {uploading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.addButtonText}>Agregar prenda</Text>
-            )}
+          <Text style={styles.emptyStateText}>Comienza a agregar tus prendas favoritas</Text>
+          <TouchableOpacity style={styles.addButton} onPress={showUploadOptions} disabled={uploading}>
+            {uploading ? <ActivityIndicator color="#fff" /> : <Text style={styles.addButtonText}>Agregar prenda</Text>}
           </TouchableOpacity>
         </View>
       );
     }
-
-return (
+    return (
       <FlatList
         data={clothes}
         numColumns={2}
         contentContainerStyle={styles.clothesGrid}
-        keyExtractor={(item, index) => item.id?.toString() || index.toString()}
+        keyExtractor={(item, idx) => item.id?.toString() ?? String(idx)}
         renderItem={({ item }) => (
-          <TouchableOpacity 
-            style={styles.clothingItem}
-            onPress={() => setSelectedItem(item)}
-          >
+          <View style={styles.clothingItem}>
             <Image
-              source={{ uri: item.imageUrl }}
+              source={{ uri: item.imageUrl.startsWith('http') ? item.imageUrl : `${API_URL}${item.imageUrl}` }}
               style={styles.clothingImage}
               resizeMode="cover"
             />
-          </TouchableOpacity>
+          </View>
         )}
-        onEndReached={() => {
-          // Aquí puedes implementar paginación si el backend la soporta
-          // loadMoreClothes();
-        }}
-        onEndReachedThreshold={0.5}
       />
     );
   };
 
   return (
     <View style={styles.container}>
-      {/* Header con búsqueda */}
+      {/* Header */}
       <View style={styles.header}>
         <View style={styles.searchContainer}>
           <Ionicons name="search-outline" size={20} color="#666" />
@@ -224,239 +186,85 @@ return (
       </View>
 
       {/* Categorías */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.categoriesContainer}
-      >
-        {categories.map((category) => (
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesContainer}>
+        {categories.map((c) => (
           <TouchableOpacity
-            key={category.id}
-            style={[
-              styles.categoryButton,
-              activeTab === category.id && styles.categoryButtonActive,
-            ]}
-            onPress={() => setActiveTab(category.id)}
+            key={c.id}
+            style={[styles.categoryButton, activeTab === c.id && styles.categoryButtonActive]}
+            onPress={() => setActiveTab(c.id)}
           >
-            <Ionicons
-              name={category.icon as any}
-              size={20}
-              color={activeTab === category.id ? "#fff" : "#666"}
-            />
-            <Text
-              style={[
-                styles.categoryText,
-                activeTab === category.id && styles.categoryTextActive,
-              ]}
-            >
-              {category.name}
-            </Text>
+            <Ionicons name={c.icon as any} size={20} color={activeTab === c.id ? "#fff" : "#666"} />
+            <Text style={[styles.categoryText, activeTab === c.id && styles.categoryTextActive]}>{c.name}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
 
-      {/* Grid de prendas */}
-      <ScrollView style={styles.clothesContainer}>
-        {renderClothesGrid()}
-      </ScrollView>
+      {/* Grid */}
+      {/*<ScrollView style={styles.clothesContainer}>{renderClothesGrid()}</ScrollView>*/}
 
-      {/* Loading durante upload */}
-      {uploading && (
-        <View style={styles.uploadOverlay}>
-          <View style={styles.uploadModal}>
-            <ActivityIndicator size="large" color="#22bb9fff" />
-            <Text style={styles.uploadText}>Subiendo prenda...</Text>
+      {/* 👇 FlatList como único scroll vertical */}
+      <FlatList
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.gridContent}
+        data={clothes}
+        numColumns={2}
+        keyExtractor={(item, idx) => item.id?.toString() ?? String(idx)}
+        columnWrapperStyle={styles.gridRow}
+        renderItem={({ item }) => (
+          <View style={styles.clothingItem}>
+            <Image source={{ uri: item.imageUrl }} style={styles.clothingImage} resizeMode="cover" />
           </View>
-        </View>
-      )}
-
-      {/* Botón flotante para agregar */}
-      <TouchableOpacity 
-        style={styles.fab} 
-        onPress={showUploadOptions}
-        disabled={uploading}
-      >
-        {uploading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Ionicons name="add" size={24} color="#fff" />
         )}
+        ListEmptyComponent={
+          loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" />
+              <Text style={styles.loadingText}>Cargando prendas...</Text>
+            </View>
+          ) : (
+            <View style={styles.emptyState}>
+              <Ionicons name="shirt-outline" size={64} color="#ccc" />
+              <Text style={styles.emptyStateTitle}>Tu armario está vacío</Text>
+              <Text style={styles.emptyStateText}>Comienza a agregar tus prendas favoritas</Text>
+              <TouchableOpacity style={styles.addButton} onPress={showUploadOptions} disabled={uploading}>
+                {uploading ? <ActivityIndicator color="#fff" /> : <Text style={styles.addButtonText}>Agregar prenda</Text>}
+              </TouchableOpacity>
+            </View>
+          )
+        }
+      />
+
+      {/* FAB */}
+      <TouchableOpacity style={styles.fab} onPress={showUploadOptions} disabled={uploading}>
+        {uploading ? <ActivityIndicator color="#fff" /> : <Ionicons name="add" size={24} color="#fff" />}
       </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f8f9fa",
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
-    backgroundColor: "#fff",
-  },
-  searchContainer: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#f5f5f5",
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderRadius: 10,
-    marginRight: 10,
-  },
-  searchPlaceholder: {
-    marginLeft: 10,
-    color: "#666",
-    fontSize: 16,
-  },
-  filterButton: {
-    width: 44,
-    height: 44,
-    backgroundColor: "#f5f5f5",
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: 10,
-  },
-  categoriesContainer: {
-    backgroundColor: "#fff",
-    paddingVertical: 15,
-    paddingLeft: 15,
-  },
-  categoryButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: "#f5f5f5",
-    marginRight: 10,
-  },
-  categoryButtonActive: {
-    backgroundColor: "#667eea",
-  },
-  categoryText: {
-    marginLeft: 6,
-    fontSize: 14,
-    color: "#666",
-  },
-  categoryTextActive: {
-    color: "#fff",
-  },
-  clothesContainer: {
-    flex: 1,
-    padding: 20,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: 60,
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: "#666",
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: 60,
-  },
-  emptyStateTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#333",
-    marginTop: 20,
-    marginBottom: 10,
-  },
-  emptyStateText: {
-    fontSize: 16,
-    color: "#666",
-    marginBottom: 30,
-    textAlign: "center",
-  },
-  addButton: {
-    backgroundColor: "#667eea",
-    paddingHorizontal: 30,
-    paddingVertical: 15,
-    borderRadius: 25,
-    minWidth: 150,
-    alignItems: "center",
-  },
-  addButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  clothesGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  clothingItem: {
-    width: "48%",
-    aspectRatio: 1,
-    marginBottom: 15,
-    borderRadius: 12,
-    overflow: "hidden",
-    backgroundColor: "#fff",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
-  },
-  clothingImage: {
-    width: "100%",
-    height: "100%",
-  },
-  fab: {
-    position: "absolute",
-    right: 20,
-    bottom: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#667eea",
-    justifyContent: "center",
-    alignItems: "center",
-    elevation: 5,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  uploadOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  uploadModal: {
-    backgroundColor: "#fff",
-    padding: 30,
-    borderRadius: 15,
-    alignItems: "center",
-  },
-  uploadText: {
-    marginTop: 15,
-    fontSize: 16,
-    color: "#333",
-  },
+  container: { flex: 1, backgroundColor: "#f8f9fa" },
+  header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20, backgroundColor: "#fff" },
+  searchContainer: { flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: "#f5f5f5", paddingHorizontal: 15, paddingVertical: 10, borderRadius: 10, marginRight: 10 },
+  searchPlaceholder: { marginLeft: 10, color: "#666", fontSize: 16 },
+  filterButton: { width: 44, height: 44, backgroundColor: "#f5f5f5", justifyContent: "center", alignItems: "center", borderRadius: 10 },
+  categoriesContainer: { backgroundColor: "#fff", paddingVertical: 15, paddingLeft: 15 },
+  categoryButton: { flexDirection: "row", alignItems: "center", paddingHorizontal: 15, paddingVertical: 8, borderRadius: 20, backgroundColor: "#f5f5f5", marginRight: 10 },
+  categoryButtonActive: { backgroundColor: "#667eea" },
+  categoryText: { marginLeft: 6, fontSize: 14, color: "#666" },
+  categoryTextActive: { color: "#fff" },
+  clothesContainer: { flex: 1, padding: 20 },
+  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center", paddingVertical: 60 },
+  loadingText: { marginTop: 10, fontSize: 16, color: "#666" },
+  emptyState: { flex: 1, justifyContent: "center", alignItems: "center", paddingVertical: 60 },
+  emptyStateTitle: { fontSize: 20, fontWeight: "bold", color: "#333", marginTop: 20, marginBottom: 10 },
+  emptyStateText: { fontSize: 16, color: "#666", marginBottom: 30, textAlign: "center" },
+  addButton: { backgroundColor: "#667eea", paddingHorizontal: 30, paddingVertical: 15, borderRadius: 25, minWidth: 150, alignItems: "center" },
+  addButtonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+  clothesGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" },
+  clothingItem: { width: "48%", aspectRatio: 1, marginBottom: 15, borderRadius: 12, overflow: "hidden", backgroundColor: "#fff" },
+  clothingImage: { width: "100%", height: "100%" },
+  fab: { position: "absolute", right: 20, bottom: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: "#667eea", justifyContent: "center", alignItems: "center" },
+  gridContent: { padding: 20, paddingBottom: 100 }, // deja espacio para el FAB
+  gridRow: { justifyContent: "space-between", marginBottom: 15 },
 });

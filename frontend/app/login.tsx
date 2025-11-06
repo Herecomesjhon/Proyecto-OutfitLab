@@ -20,12 +20,19 @@ import * as Google from "expo-auth-session/providers/google";
 import * as Facebook from "expo-auth-session/providers/facebook";
 import formStyles from '../src/styles/forms';
 
+import { useRouter } from "expo-router";
+import { useAuth } from "../src/contexts/auth"; // <- importante
 
 WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
+  const router = useRouter();
+  const { login, isLoading } = useAuth();  // <- aquí usamos el contexto
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  // const [email, setEmail] = useState("");
+  // const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   const redirectUri = __DEV__ 
@@ -80,6 +87,8 @@ const onGooglePress = async () => {
     }
     try {
       const data = await post("/auth/login", { email, password }); // { token, user }
+      setSubmitting(true);
+      await login(email.trim(), password);  
       // TODO: guarda token si lo necesitas y navega
       // await AsyncStorage.setItem('token', data.token);
       Alert.alert("Éxito", `Bienvenido, ${data.user?.name ?? ""}`);
@@ -87,6 +96,8 @@ const onGooglePress = async () => {
     } catch (err: any) {
       console.error("LOGIN ERROR:", err?.message || err);
       Alert.alert("Error", err?.message || "No se pudo conectar con el servidor");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -194,7 +205,7 @@ const onGooglePress = async () => {
             <Text style={formStyles.forgotPasswordText}>¿Olvidaste tu contraseña?</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={formStyles.button} onPress={handleLogin}>
+          <TouchableOpacity style={formStyles.button} onPress={handleLogin} disabled={submitting || isLoading}>
             <Text style={formStyles.buttonText}>Iniciar sesión</Text>
           </TouchableOpacity>
 
@@ -234,5 +245,3 @@ const onGooglePress = async () => {
     </KeyboardAvoidingView>
   );
 }
-
-

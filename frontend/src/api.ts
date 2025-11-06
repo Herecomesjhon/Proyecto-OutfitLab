@@ -1,6 +1,7 @@
+//frontend/src/api.ts
 import axios from 'axios';
 
-export const API_URL = 'http://192.168.1.18:3000'; //poner la ip de su compuuu
+export const API_URL = 'http://192.168.0.103:3000'; //poner la ip de su compuuu
 console.log('_API_URL =', API_URL);
 
 export const api = axios.create({
@@ -16,5 +17,4 @@ export async function post<T = any>(path: string, body?: any, config?: any): Pro
   });
   return data;
 }
-
 

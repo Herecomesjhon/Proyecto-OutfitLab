@@ -1,11 +1,18 @@
-const express = require("express");
-const upload = require("../lib/multer");
-const Ctrl = require("../controllers/items.controller");
+// routes/items.routes.js
+const path = require('path');
+const { Router } = require('express');
+const upload = require('../lib/multer');                 // <- tu multer
+const { uploadItem, listByUser, listAll } = require('../controllers/items.controller');
 
-const router = express.Router();
+const router = Router();
 
-router.get("/", Ctrl.listItems);
-router.post("/", upload.single("image"), Ctrl.createItem);
-router.post("/:id/images", upload.single("image"), Ctrl.addImage);
+// Subida de imagen (FormData)
+router.post('/upload', upload.single('image'), uploadItem);
+
+// Listar prendas por usuario
+router.get('/user/:userId', listByUser);
+
+// (Opcional) Listar todas para debug
+router.get('/', listAll);
 
 module.exports = router;
