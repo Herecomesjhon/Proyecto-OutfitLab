@@ -78,16 +78,21 @@ model AuthProvider {
   @@map("auth_providers")
 }
 
+//ACTUALIZADO CON CLASIFICACIÓN IA
 model Prenda {
-  id        Int      @id @default(autoincrement())
-  user      Usuario  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String   @map("user_id")
-  imageUrl  String   @map("image_url")
-  type      String?
-  color     String?
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id         Int      @id @default(autoincrement())
+  user       Usuario  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String   @map("user_id")
+  imageUrl   String   @map("image_url")
+  type       String?  // tipo manual (opcional)
+  color      String?  // color (opcional)
+  category   String?  // categoría clasificada por IA
+  brand      String?  // marca (opcional)
+  confidence Float?   // confianza de clasificación IA (0-1)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
   @@index([userId], map: "idx_clothes_user")
+  @@index([category])
   @@map("clothes")
 }
