@@ -1,7 +1,7 @@
 //frontend/src/api.ts
 import axios from 'axios';
 
-export const API_URL = 'http://192.168.0.103:3000'; //poner la ip de su compuuu
+export const API_URL = 'http://192.168.1.72:3000'; //poner la ip de su compuuu
 console.log('_API_URL =', API_URL);
 
 export const api = axios.create({
