@@ -14,6 +14,8 @@ const prisma = new PrismaClient();
 // Rutas
 const authRoutes = require('./auth.routes');           
 const clothesRouter = require('./routes/clothes.routes'); // ✅ Solo este
+const recommendRoutes = require('./routes/recommend.routes');
+
 
 const app = express();
 
@@ -48,6 +50,9 @@ app.use('/auth', authRoutes);
 
 /* ---------- API de prendas (inventario) ---------- */
 app.use('/api/clothes', clothesRouter);
+
+/* ---------- API de recomendaciones ---------- */
+app.use('/api/recommend', recommendRoutes);
 
 /* ---------- 404 y errores ---------- */
 app.use((req, res) => {

@@ -96,3 +96,14 @@ model Prenda {
   @@index([category])
   @@map("clothes")
 }
+
+model Like {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  prendaId  Int
+  createdAt DateTime @default(now())
+
+  @@unique([userId, prendaId])
+  @@index([userId])
+  @@index([prendaId])
+}

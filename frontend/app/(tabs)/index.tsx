@@ -1,8 +1,9 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 
 export default function DashboardScreen() {
-  return (
+  return ( 
     <ScrollView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
@@ -71,18 +72,16 @@ export default function DashboardScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Acciones rápidas</Text>
         <View style={styles.actionsGrid}>
-          <TouchableOpacity style={styles.actionButton}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => router.push("/armario")}   
+          >
             <View style={[styles.actionIcon, { backgroundColor: "#f8f9ff" }]}>
               <Ionicons name="add-circle-outline" size={24} color="#667eea" />
             </View>
             <Text style={styles.actionText}>Agregar prenda</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton}>
-            <View style={[styles.actionIcon, { backgroundColor: "#fff0f0" }]}>
-              <Ionicons name="create-outline" size={24} color="#ff6b6b" />
-            </View>
-            <Text style={styles.actionText}>Crear outfit</Text>
-          </TouchableOpacity>
+
           <TouchableOpacity style={styles.actionButton}>
             <View style={[styles.actionIcon, { backgroundColor: "#f0fff4" }]}>
               <Ionicons name="calendar-outline" size={24} color="#51cf66" />
