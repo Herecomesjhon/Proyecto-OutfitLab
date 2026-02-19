@@ -1,78 +1,83 @@
-// src/contexts/AuthContext.tsx
-import React, { createContext, useContext, useEffect, useState } from "react";
+// src/contexts/auth.tsx
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { API_URL } from "../api"; // ajusta si tu api.ts está en src/
 
-type User = { id: string; email: string; name?: string };
-
-type Ctx = {
-  user: User | null;
-  token: string | null;
-  isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
-  setSession: (t: string, u: User) => Promise<void>; // útil para Google/Facebook
+export type AuthUser = {
+  id: string;
+  name?: string | null;
+  email: string;
 };
 
-const AuthContext = createContext<Ctx>({
-  user: null,
-  token: null,
-  isLoading: true,
-  login: async () => {},
-  logout: async () => {},
-  setSession: async () => {},
-});
+type AuthContextType = {
+  user: AuthUser | null;
+  loading: boolean;
+  login: (user: AuthUser, token?: string) => Promise<void>;
+  logout: () => Promise<void>;
+};
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    (async () => {
+    const loadUser = async () => {
       try {
-        const [t, u] = await Promise.all([
-          AsyncStorage.getItem("@auth_token"),
-          AsyncStorage.getItem("@auth_user"),
-        ]);
-        if (t) setToken(t);
-        if (u) setUser(JSON.parse(u));
+        const storedUser = await AsyncStorage.getItem("@outfitlab:user");
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+        }
+      } catch (e) {
+        console.log("Error cargando usuario almacenado:", e);
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
-    })();
+    };
+
+    loadUser();
   }, []);
 
-  const setSession = async (t: string, u: User) => {
-    setToken(t);
-    setUser(u);
-    await AsyncStorage.setItem("@auth_token", t);
-    await AsyncStorage.setItem("@auth_user", JSON.stringify(u));
-  };
+  const login = async (newUser: AuthUser, token?: string) => {
+    try {
+      setUser(newUser);
+      await AsyncStorage.setItem("@outfitlab:user", JSON.stringify(newUser));
 
-  const login = async (email: string, password: string) => {
-    const res = await fetch(`${API_URL}/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-    if (!res.ok) throw new Error(await res.text());
-    const { token: tk, user: us } = await res.json();
-    if (!tk || !us?.id) throw new Error("Respuesta inválida");
-    await setSession(tk, us);
+      if (token) {
+        await AsyncStorage.setItem("@outfitlab:token", token);
+      }
+    } catch (e) {
+      console.log("Error guardando usuario:", e);
+    }
   };
 
   const logout = async () => {
-    setUser(null);
-    setToken(null);
-    await AsyncStorage.multiRemove(["@auth_token", "@auth_user"]);
+    try {
+      setUser(null);
+      await AsyncStorage.removeItem("@outfitlab:user");
+      await AsyncStorage.removeItem("@outfitlab:token");
+    } catch (e) {
+      console.log("Error limpiando sesión:", e);
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, logout, setSession }}>
+    <AuthContext.Provider value={{ user, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
-export const useAuth = () => useContext(AuthContext);
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) {
+    throw new Error("useAuth debe usarse dentro de <AuthProvider>");
+  }
+  return ctx;
+}

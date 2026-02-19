@@ -269,8 +269,18 @@
 //   gridRow: { justifyContent: "space-between", marginBottom: 15 },
 // });
 
-//frontend/app/(tabs)/armario.tsx
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, Alert, FlatList } from "react-native";
+// app/(tabs)/armario.tsx
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useState, useEffect } from "react";
 import * as ImagePicker from "expo-image-picker";
@@ -286,22 +296,40 @@ type ClothingItem = {
   category?: string | null;
 };
 
-// ✅ Mapeo de categorías UI → categorías de la BD
+// Mapeo de categorías UI → categorías de la BD
 const CATEGORY_FILTERS = {
-  todas: null, // null = sin filtro
-  camisetas: ['camiseta', 'camisa', 'blusa', 'top', 'playera', 'sueter', 'sudadera', 'cardigan'],
-  pantalones: ['pantalon', 'jeans', 'shorts', 'falda', 'leggins'],
-  zapatos: ['calzado', 'tenis', 'bota', 'sandalia', 'tacones', 'botín'],
-  accesorios: ['bolso', 'mochila', 'sombrero', 'gorra', 'bufanda', 'cinturon', 'reloj', 'lentes'],
+  todas: null as string[] | null,
+  camisetas: [
+    "camiseta",
+    "camisa",
+    "blusa",
+    "top",
+    "playera",
+    "sueter",
+    "sudadera",
+    "cardigan",
+  ],
+  pantalones: ["pantalon", "jeans", "shorts", "falda", "leggins"],
+  zapatos: ["calzado", "tenis", "bota", "sandalia", "tacones", "botín", "botin"],
+  accesorios: [
+    "bolso",
+    "mochila",
+    "sombrero",
+    "gorra",
+    "bufanda",
+    "cinturon",
+    "reloj",
+    "lentes",
+  ],
 };
 
 export default function ArmarioScreen() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("todas");
-  const [allClothes, setAllClothes] = useState<ClothingItem[]>([]); // todas las prendas
-  const [filteredClothes, setFilteredClothes] = useState<ClothingItem[]>([]); // filtradas
+  const [allClothes, setAllClothes] = useState<ClothingItem[]>([]);
+  const [filteredClothes, setFilteredClothes] = useState<ClothingItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const { user } = useAuth();
 
   const categories = [
     { id: "todas", name: "Todas", icon: "grid-outline" },
@@ -311,22 +339,19 @@ export default function ArmarioScreen() {
     { id: "accesorios", name: "Accesorios", icon: "watch-outline" },
   ];
 
-  const TEST_USER_ID = 'cmhhzpave0000bguh98qm8z4l';
-
-  function getSafeUserId(user: any) {
-    return user?.id ?? TEST_USER_ID;
-  }
-
   const loadUserClothes = async () => {
-    const uid = getSafeUserId(user);
-    if (!uid) return;
+    if (!user?.id) {
+      console.log("No hay user.id aún, no se cargan prendas");
+      return;
+    }
+
     setLoading(true);
     try {
-      const r = await fetch(`${API_URL}/api/clothes/user/${uid}`);
+      const r = await fetch(`${API_URL}/api/clothes/user/${user.id}`);
       const data = await r.json();
       const clothes = Array.isArray(data) ? data : [];
       setAllClothes(clothes);
-      applyFilter(activeTab, clothes); // aplicar filtro inicial
+      applyFilter(activeTab, clothes);
     } catch (e) {
       console.error(e);
       Alert.alert("Error", "No se pudieron cargar las prendas");
@@ -335,24 +360,24 @@ export default function ArmarioScreen() {
     }
   };
 
-  // ✅ Función para aplicar filtro por categoría
-  const applyFilter = (categoryId: string, clothesList: ClothingItem[] = allClothes) => {
-    const allowedCategories = CATEGORY_FILTERS[categoryId as keyof typeof CATEGORY_FILTERS];
-    
+  const applyFilter = (
+    categoryId: string,
+    clothesList: ClothingItem[] = allClothes
+  ) => {
+    const allowedCategories =
+      CATEGORY_FILTERS[categoryId as keyof typeof CATEGORY_FILTERS];
+
     if (!allowedCategories) {
-      // "todas" - mostrar todo
       setFilteredClothes(clothesList);
     } else {
-      // filtrar por las categorías permitidas
-      const filtered = clothesList.filter(item => {
-        const cat = (item.category || 'otro').toLowerCase();
+      const filtered = clothesList.filter((item) => {
+        const cat = (item.category || "otro").toLowerCase();
         return allowedCategories.includes(cat);
       });
       setFilteredClothes(filtered);
     }
   };
 
-  // ✅ Cambiar tab y aplicar filtro
   const handleTabChange = (categoryId: string) => {
     setActiveTab(categoryId);
     applyFilter(categoryId);
@@ -365,7 +390,10 @@ export default function ArmarioScreen() {
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Permiso denegado", "Necesitas permitir el acceso a la cámara");
+      Alert.alert(
+        "Permiso denegado",
+        "Necesitas permitir el acceso a la cámara"
+      );
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
@@ -379,7 +407,10 @@ export default function ArmarioScreen() {
   const pickFromGallery = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Permiso denegado", "Necesitas permitir el acceso a la galería");
+      Alert.alert(
+        "Permiso denegado",
+        "Necesitas permitir el acceso a la galería"
+      );
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -391,32 +422,45 @@ export default function ArmarioScreen() {
   };
 
   const uploadImage = async (uri: string) => {
-    const uid = getSafeUserId(user);
-    if (!uid) return;
+    if (!user?.id) {
+      Alert.alert("Error", "Debes iniciar sesión para agregar prendas");
+      return;
+    }
+
     setUploading(true);
     try {
       const form = new FormData();
-      form.append('image', {
-        uri,
-        type: 'image/jpeg',
-        name: `clothing_${Date.now()}.jpg`,
-      } as any);
-      form.append('userId', String(uid));
+      form.append(
+        "image",
+        {
+          uri,
+          type: "image/jpeg",
+          name: `clothing_${Date.now()}.jpg`,
+        } as any
+      );
+      form.append("userId", String(user.id));
 
-      const resp = await fetch(`${API_URL}/api/clothes/upload`, { method: 'POST', body: form });
+      const resp = await fetch(`${API_URL}/api/clothes/upload`, {
+        method: "POST",
+        body: form,
+      });
       const created = await resp.json();
 
-      if (!resp.ok) throw new Error(created?.error || 'Upload failed');
+      if (!resp.ok) throw new Error(created?.error || "Upload failed");
 
-      // ✅ Actualizar lista completa y aplicar filtro
       const newList = [created.prenda || created, ...allClothes];
       setAllClothes(newList);
       applyFilter(activeTab, newList);
 
-      Alert.alert('Éxito', `Prenda clasificada como: ${created.classification?.category || 'otro'}`);
+      Alert.alert(
+        "Éxito",
+        `Prenda clasificada como: ${
+          created.classification?.category || "otro"
+        }`
+      );
     } catch (e) {
-      console.error('upload error:', e);
-      Alert.alert('Error', 'No se pudo subir la imagen');
+      console.error("upload error:", e);
+      Alert.alert("Error", "No se pudo subir la imagen");
     } finally {
       setUploading(false);
     }
@@ -443,16 +487,26 @@ export default function ArmarioScreen() {
       <View style={styles.emptyState}>
         <Ionicons name="shirt-outline" size={64} color="#ccc" />
         <Text style={styles.emptyStateTitle}>
-          {activeTab === 'todas' ? 'Tu armario está vacío' : 'No hay prendas en esta categoría'}
+          {activeTab === "todas"
+            ? "Tu armario está vacío"
+            : "No hay prendas en esta categoría"}
         </Text>
         <Text style={styles.emptyStateText}>
-          {activeTab === 'todas' 
-            ? 'Comienza a agregar tus prendas favoritas'
-            : 'Prueba con otra categoría o agrega más prendas'}
+          {activeTab === "todas"
+            ? "Comienza a agregar tus prendas favoritas"
+            : "Prueba con otra categoría o agrega más prendas"}
         </Text>
-        {activeTab === 'todas' && (
-          <TouchableOpacity style={styles.addButton} onPress={showUploadOptions} disabled={uploading}>
-            {uploading ? <ActivityIndicator color="#fff" /> : <Text style={styles.addButtonText}>Agregar prenda</Text>}
+        {activeTab === "todas" && (
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={showUploadOptions}
+            disabled={uploading}
+          >
+            {uploading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.addButtonText}>Agregar prenda</Text>
+            )}
           </TouchableOpacity>
         )}
       </View>
@@ -473,33 +527,53 @@ export default function ArmarioScreen() {
       </View>
 
       {/* Categorías */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesContainer}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.categoriesContainer}
+      >
         {categories.map((c) => (
           <TouchableOpacity
             key={c.id}
-            style={[styles.categoryButton, activeTab === c.id && styles.categoryButtonActive]}
+            style={[
+              styles.categoryButton,
+              activeTab === c.id && styles.categoryButtonActive,
+            ]}
             onPress={() => handleTabChange(c.id)}
           >
-            <Ionicons name={c.icon as any} size={20} color={activeTab === c.id ? "#fff" : "#666"} />
-            <Text style={[styles.categoryText, activeTab === c.id && styles.categoryTextActive]}>{c.name}</Text>
+            <Ionicons
+              name={c.icon as any}
+              size={20}
+              color={activeTab === c.id ? "#fff" : "#666"}
+            />
+            <Text
+              style={[
+                styles.categoryText,
+                activeTab === c.id && styles.categoryTextActive,
+              ]}
+            >
+              {c.name}
+            </Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
 
-      {/* Grid de prendas filtradas */}
+      {/* Grid */}
       <FlatList
         style={{ flex: 1 }}
         contentContainerStyle={styles.gridContent}
         data={filteredClothes}
         numColumns={2}
         keyExtractor={(item, idx) => item.id?.toString() ?? String(idx)}
-        columnWrapperStyle={filteredClothes.length > 0 ? styles.gridRow : undefined}
+        columnWrapperStyle={
+          filteredClothes.length > 0 ? styles.gridRow : undefined
+        }
         renderItem={({ item }) => (
           <View style={styles.clothingItem}>
-            <Image 
-              source={{ uri: item.imageUrl }} 
-              style={styles.clothingImage} 
-              resizeMode="cover" 
+            <Image
+              source={{ uri: item.imageUrl }}
+              style={styles.clothingImage}
+              resizeMode="cover"
             />
             {item.category && (
               <View style={styles.categoryBadge}>
@@ -512,8 +586,16 @@ export default function ArmarioScreen() {
       />
 
       {/* FAB */}
-      <TouchableOpacity style={styles.fab} onPress={showUploadOptions} disabled={uploading}>
-        {uploading ? <ActivityIndicator color="#fff" /> : <Ionicons name="add" size={24} color="#fff" />}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={showUploadOptions}
+        disabled={uploading}
+      >
+        {uploading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Ionicons name="add" size={24} color="#fff" />
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -521,27 +603,127 @@ export default function ArmarioScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f8f9fa" },
-  header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20, backgroundColor: "#fff" },
-  searchContainer: { flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: "#f5f5f5", paddingHorizontal: 15, paddingVertical: 10, borderRadius: 10, marginRight: 10 },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 20,
+    backgroundColor: "#fff",
+  },
+  searchContainer: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f5f5f5",
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 10,
+    marginRight: 10,
+  },
   searchPlaceholder: { marginLeft: 10, color: "#666", fontSize: 16 },
-  filterButton: { width: 44, height: 44, backgroundColor: "#f5f5f5", justifyContent: "center", alignItems: "center", borderRadius: 10 },
-  categoriesContainer: { backgroundColor: "#fff", paddingVertical: 15, paddingLeft: 15 },
-  categoryButton: { flexDirection: "row", alignItems: "center", paddingHorizontal: 15, paddingVertical: 8, borderRadius: 20, backgroundColor: "#f5f5f5", marginRight: 10 },
+  filterButton: {
+    width: 44,
+    height: 44,
+    backgroundColor: "#f5f5f5",
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 10,
+  },
+  categoriesContainer: {
+    backgroundColor: "#fff",
+    paddingVertical: 15,
+    paddingLeft: 15,
+  },
+  categoryButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: "#f5f5f5",
+    marginRight: 10,
+  },
   categoryButtonActive: { backgroundColor: "#667eea" },
   categoryText: { marginLeft: 6, fontSize: 14, color: "#666" },
   categoryTextActive: { color: "#fff" },
-  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center", paddingVertical: 60 },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 60,
+  },
   loadingText: { marginTop: 10, fontSize: 16, color: "#666" },
-  emptyState: { flex: 1, justifyContent: "center", alignItems: "center", paddingVertical: 60, paddingHorizontal: 20 },
-  emptyStateTitle: { fontSize: 20, fontWeight: "bold", color: "#333", marginTop: 20, marginBottom: 10, textAlign: 'center' },
-  emptyStateText: { fontSize: 16, color: "#666", marginBottom: 30, textAlign: "center" },
-  addButton: { backgroundColor: "#667eea", paddingHorizontal: 30, paddingVertical: 15, borderRadius: 25, minWidth: 150, alignItems: "center" },
+  emptyState: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 60,
+    paddingHorizontal: 20,
+  },
+  emptyStateTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#333",
+    marginTop: 20,
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: "#666",
+    marginBottom: 30,
+    textAlign: "center",
+  },
+  addButton: {
+    backgroundColor: "#667eea",
+    paddingHorizontal: 30,
+    paddingVertical: 15,
+    borderRadius: 25,
+    minWidth: 150,
+    alignItems: "center",
+  },
   addButtonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
   gridContent: { padding: 20, paddingBottom: 100 },
   gridRow: { justifyContent: "space-between", marginBottom: 15 },
-  clothingItem: { width: "48%", aspectRatio: 1, marginBottom: 15, borderRadius: 12, overflow: "hidden", backgroundColor: "#fff", position: 'relative' },
+  clothingItem: {
+    width: "48%",
+    aspectRatio: 1,
+    marginBottom: 15,
+    borderRadius: 12,
+    overflow: "hidden",
+    backgroundColor: "#fff",
+    position: "relative",
+  },
   clothingImage: { width: "100%", height: "100%" },
-  categoryBadge: { position: 'absolute', bottom: 8, left: 8, backgroundColor: 'rgba(102, 126, 234, 0.9)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  categoryBadgeText: { color: '#fff', fontSize: 11, fontWeight: '600' },
-  fab: { position: "absolute", right: 20, bottom: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: "#667eea", justifyContent: "center", alignItems: "center", elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4 },
+  categoryBadge: {
+    position: "absolute",
+    bottom: 8,
+    left: 8,
+    backgroundColor: "rgba(102, 126, 234, 0.9)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  categoryBadgeText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  fab: {
+    position: "absolute",
+    right: 20,
+    bottom: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#667eea",
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
 });
